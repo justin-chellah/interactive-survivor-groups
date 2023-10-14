@@ -1,0 +1,62 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Addresses"
+		{
+			// Search for string "PIPE_BOMB" and look for a call related to m_survivorCharacter offset
+			"SurvivorCharacterName relative call"
+			{
+				"signature"	"DescribeSubject"
+
+				"windows"
+				{
+					"offset" "182"
+				}
+
+				"linux"
+				{
+					"offset" "208"
+				}
+			}
+
+			// Search for string "(SKIN) SetCharacter: Survivor %s chose character %s(%d) from model %s\n" and look for a call related to m_survivorCharacter offset
+			// right above "name"
+			"SurvivorCharacterDisplayName relative call"
+			{
+				"signature"	"CTerrorPlayer::SetCharacter"
+
+				"windows"
+				{
+					"offset" "206"
+				}
+
+				"linux"
+				{
+					"offset" "391"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"DescribeSubject"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x08\x85\xF6\x0F\x84\x2A\x2A\x2A\x2A\x8B\xCE"
+				// 55 8B EC 56 8B 75 08 85 F6 0F 84 ? ? ? ? 8B CE 
+
+				"linux"		"@_Z15DescribeSubjectP11CBaseEntity"
+			}
+
+			"CTerrorPlayer::SetCharacter"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x56\x57\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x50"
+				// 55 8B EC 56 57 8B F1 E8 ? ? ? ? 50 
+
+				"linux"		"@_ZN13CTerrorPlayer12SetCharacterE21SurvivorCharacterType"
+			}
+		}
+	}
+}
