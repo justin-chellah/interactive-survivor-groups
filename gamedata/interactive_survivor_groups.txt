@@ -57,6 +57,24 @@
 
 				"linux"		"@_ZN13CTerrorPlayer12SetCharacterE21SurvivorCharacterType"
 			}
+
+			"GetCharacterFromName"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x08\x56\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x83\xC4\x08\x85\xC0\x75\x2A\xB8\x02\x00\x00\x00"
+				// 55 8B EC 56 8B 75 08 56 68 ? ? ? ? E8 ? ? ? ? 83 C4 08 85 C0 75 ? B8 02 00 00 00
+
+				"linux"		"@_Z20GetCharacterFromNamePKc"
+			}
+
+			"ConvertToInternalCharacter"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\xE8\x2A\x2A\x2A\x2A\x83\xF8\x01\x8B\x45\x08\x75\x2A\x8D\x48\xFC"
+				// 55 8B EC E8 ? ? ? ? 83 F8 01 8B 45 08 75 ? 8D 48 FC 
+
+				"linux"		"@_Z26ConvertToInternalCharacter21SurvivorCharacterType"
+			}
 		}
 	}
 }

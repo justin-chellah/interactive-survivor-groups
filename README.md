@@ -21,7 +21,10 @@ enum SurvivorCharacterType
 };
 ```
 
-Basically, the plugin will see the first four survivors in the enum as the L4D1 survivors and the last four as the L4D2 survivors. Most plugins that allow players to change characters aren't using the last four numbers so **a custom version of a character selection plugin will be required**.
+Basically, the plugin will see the first four survivors in the enum as the L4D1 survivors (default by the game) and the last four as the L4D2 survivors. Most plugins that allow players to change characters aren't using the last four numbers so **a custom version of a character selection plugin will be required**.
+
+# Known Issues
+- Survivor viewmodel arms, images, and names are displayed incorrectly on the client side which can't be fixed from the server
 
 # Requirements
 - [SourceMod 1.11+](https://www.sourcemod.net/downloads.php?branch=stable)

@@ -129,6 +129,57 @@ public MRESReturn DHook_SurvivorCharacterDisplayName( DHookReturn hReturn, DHook
 	return MRES_Supercede;
 }
 
+public MRESReturn DHook_GetCharacterFromName( DHookReturn hReturn, DHookParam hParams )
+{
+	// L4D2 set allows L4D and L4D2 characters
+	if ( g_SurvivorSet == SurvivorSet_L4D2 )
+	{
+		return MRES_Ignored;
+	}
+
+	char szName[32];
+	hParams.GetString( 1, szName, sizeof( szName ) );
+
+	if ( StrEqual( szName, "Gambler", false ) || StrEqual( szName, "Nick", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_NamVet;
+		return MRES_Supercede;
+	}
+
+	if ( StrEqual( szName, "Producer", false ) || StrEqual( szName, "Rochelle", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_TeenGirl;
+		return MRES_Supercede;
+	}
+
+	if ( StrEqual( szName, "Mechanic", false ) || StrEqual( szName, "Ellis", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_Biker;
+		return MRES_Supercede;
+	}
+
+	if ( StrEqual( szName, "Coach", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_Manager;
+		return MRES_Supercede;
+	}
+
+	return MRES_Ignored;
+}
+
+public MRESReturn DHook_ConvertToInternalCharacter( DHookReturn hReturn, DHookParam hParams )
+{
+	// L4D2 set allows L4D and L4D2 characters
+	if ( g_SurvivorSet == SurvivorSet_L4D2 )
+	{
+		return MRES_Ignored;
+	}
+
+	SurvivorCharacterType eSurvivorCharacter = hParams.Get( 1 );
+	hReturn.Value = eSurvivorCharacter;
+	return MRES_Supercede;
+}
+
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/375888-address-direct-reference.html
 Address GetFunctionAddressFromRelativeCall( Address addr )
 {
@@ -179,6 +230,22 @@ public void OnPluginStart()
 		SetFailState( "Unable to setup dynamic detour for \"SurvivorCharacterDisplayName\"" );
 	}
 
+	DynamicDetour hDDetour_GetCharacterFromName = new DynamicDetour( Address_Null, CallConv_CDECL, ReturnType_Int, ThisPointer_Ignore );
+	if ( !hDDetour_GetCharacterFromName.SetFromConf( hGameData, SDKConf_Signature, "GetCharacterFromName" ) )
+	{
+		delete hGameData;
+
+		SetFailState( "Unable to find gamedata signature entry for \"GetCharacterFromName\"" );
+	}
+
+	DynamicDetour hDDetour_ConvertToInternalCharacter = new DynamicDetour( Address_Null, CallConv_CDECL, ReturnType_Int, ThisPointer_Ignore );
+	if ( !hDDetour_ConvertToInternalCharacter.SetFromConf( hGameData, SDKConf_Signature, "ConvertToInternalCharacter" ) )
+	{
+		delete hGameData;
+
+		SetFailState( "Unable to find gamedata signature entry for \"ConvertToInternalCharacter\"" );
+	}
+
 	delete hGameData;
 
 	hDDetour_SurvivorCharacterName.AddParam( HookParamType_Int );
@@ -186,6 +253,12 @@ public void OnPluginStart()
 
 	hDDetour_SurvivorCharacterDisplayName.AddParam( HookParamType_Int );
 	hDDetour_SurvivorCharacterDisplayName.Enable( Hook_Pre, DHook_SurvivorCharacterDisplayName );
+
+	hDDetour_GetCharacterFromName.AddParam( HookParamType_CharPtr );
+	hDDetour_GetCharacterFromName.Enable( Hook_Pre, DHook_GetCharacterFromName );
+
+	hDDetour_ConvertToInternalCharacter.AddParam( HookParamType_Int );
+	hDDetour_ConvertToInternalCharacter.Enable( Hook_Pre, DHook_ConvertToInternalCharacter );
 
 	#if defined DEBUG
 	RegConsoleCmd( "sm_setsurvivor", Command_SetSurvivor );
@@ -197,6 +270,6 @@ public Plugin myinfo =
 	name = "[L4D2] Interactive Survivor Groups",
 	author = "Justin \"Sir Jay\" Chellah",
 	description = "Enables voice lines and adds respective server-side names for L4D2 characters on maps with L4D1 survivor set",
-	version = "2.0.0",
+	version = "2.1.0",
 	url = "https://www.justin-chellah.com/"
 };
