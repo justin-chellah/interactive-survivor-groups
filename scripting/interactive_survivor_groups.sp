@@ -1,8 +1,11 @@
 #include <sourcemod>
-#include <imatchext>
 
 #define REQUIRE_EXTENSIONS
+#include <imatchext>
 #include <dhooks>
+
+#define REQUIRE_PLUGINS
+#include <sourcescramble>
 
 #define GAMEDATA_FILE	"interactive_survivor_groups"
 // #define DEBUG
@@ -140,6 +143,30 @@ public MRESReturn DHook_GetCharacterFromName( DHookReturn hReturn, DHookParam hP
 	char szName[32];
 	hParams.GetString( 1, szName, sizeof( szName ) );
 
+	if ( StrEqual( szName, "NamVet", false ) || StrEqual( szName, "Bill", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_Gambler;
+		return MRES_Supercede;
+	}
+
+	if ( StrEqual( szName, "TeenGirl", false ) || StrEqual( szName, "Zoey", false ) || StrEqual( szName, "TeenAngst", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_Producer;
+		return MRES_Supercede;
+	}
+
+	if ( StrEqual( szName, "Manager", false ) || StrEqual( szName, "Louis", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_Coach;
+		return MRES_Supercede;
+	}
+
+	if ( StrEqual( szName, "Biker", false ) || StrEqual( szName, "Francis", false ) )
+	{
+		hReturn.Value = SurvivorCharacter_Mechanic;
+		return MRES_Supercede;
+	}
+
 	if ( StrEqual( szName, "Gambler", false ) || StrEqual( szName, "Nick", false ) )
 	{
 		hReturn.Value = SurvivorCharacter_NamVet;
@@ -212,6 +239,33 @@ public void OnPluginStart()
 		SetFailState( "Unable to find gamedata address entry or address in binary for \"SurvivorCharacterDisplayName relative call\"" );
 	}
 
+#define MEMORY_PATCH_WRAPPER(%0,%1)\
+	%1 = MemoryPatch.CreateFromConf( hGameData, %0 );\
+	\
+	if ( !%1.Validate() )\
+	{\
+		delete hGameData;\
+		\
+		SetFailState( "Unable to validate patch for \"" ... %0 ... "\"" );\
+	}
+
+	MemoryPatch hBillSurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Bill survivor character", hBillSurvivorCharacterPatcher )
+
+	MemoryPatch hZoeySurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Zoey survivor character", hZoeySurvivorCharacterPatcher )
+
+	MemoryPatch hFrancisSurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Francis survivor character", hFrancisSurvivorCharacterPatcher )
+
+	MemoryPatch hLouisSurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Louis survivor character", hLouisSurvivorCharacterPatcher )
+
+	hBillSurvivorCharacterPatcher.Enable();
+	hZoeySurvivorCharacterPatcher.Enable();
+	hFrancisSurvivorCharacterPatcher.Enable();
+	hLouisSurvivorCharacterPatcher.Enable();
+
 	Address addrSurvivorCharacterName = GetFunctionAddressFromRelativeCall( addrSurvivorCharacterNameRelativeCall );
 	DynamicDetour hDDetour_SurvivorCharacterName = new DynamicDetour( addrSurvivorCharacterName, CallConv_CDECL, ReturnType_CharPtr, ThisPointer_Ignore );
 	if ( hDDetour_SurvivorCharacterName == null )
@@ -270,6 +324,6 @@ public Plugin myinfo =
 	name = "[L4D2] Interactive Survivor Groups",
 	author = "Justin \"Sir Jay\" Chellah",
 	description = "Enables voice lines and adds respective server-side names for L4D2 characters on maps with L4D1 survivor set",
-	version = "2.1.0",
+	version = "3.1.0",
 	url = "https://www.justin-chellah.com/"
 };
