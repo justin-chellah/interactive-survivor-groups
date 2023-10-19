@@ -38,8 +38,93 @@
 			}
 		}
 
+		"Offsets"
+		{
+			"CDirector::m_SurvivorCachedInfoForResponseRules"
+			{
+				"windows" "32"
+				"linux" "32"
+			}
+		}
+
 		"MemPatches"
 		{
+			"Nick survivor character"
+			{
+				"signature" "CTerrorPlayer::ModifyOrAppendCriteria"
+
+				"windows"
+				{
+					"offset" "2302"
+					"verify" "\x0"
+					"patch" "\x4"
+				}
+
+				"linux"
+				{
+					"offset" "5395"
+					"verify" "\x0"
+					"patch" "\x4"
+				}
+			}
+
+			"Rochelle survivor character"
+			{
+				"signature" "CTerrorPlayer::ModifyOrAppendCriteria"
+
+				"windows"
+				{
+					"offset" "2448"
+					"verify" "\x1"
+					"patch" "\x5"
+				}
+
+				"linux"
+				{
+					"offset" "5534"
+					"verify" "\x1"
+					"patch" "\x5"
+				}
+			}
+
+			"Coach survivor character"
+			{
+				"signature" "CTerrorPlayer::ModifyOrAppendCriteria"
+
+				"windows"
+				{
+					"offset" "2588"
+					"verify" "\x2"
+					"patch" "\x7"
+				}
+
+				"linux"
+				{
+					"offset" "5673"
+					"verify" "\x2"
+					"patch" "\x7"
+				}
+			}
+
+			"Ellis survivor character"
+			{
+				"signature" "CTerrorPlayer::ModifyOrAppendCriteria"
+
+				"windows"
+				{
+					"offset" "2728"
+					"verify" "\x3"
+					"patch" "\x6"
+				}
+
+				"linux"
+				{
+					"offset" "5812"
+					"verify" "\x3"
+					"patch" "\x6"
+				}
+			}
+
 			"Bill survivor character"
 			{
 				"signature" "CTerrorPlayer::ModifyOrAppendCriteria"
@@ -162,6 +247,15 @@
 				// 53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC 58 02 00 00 A1 ? ? ? ? 33 C5 89 45 FC 56 8B 73 08 33 C0 
 
 				"linux"		"@_ZN13CTerrorPlayer22ModifyOrAppendCriteriaER14AI_CriteriaSet"
+			}
+
+			"SurvivorResponseCachedInfo::GetClosestSurvivorTo"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x53\x56\x8B\x75\x08\x8B\xD6"
+				// 55 8B EC 53 56 8B 75 08 8B D6 
+
+				"linux"		"@_ZN26SurvivorResponseCachedInfo20GetClosestSurvivorToE21SurvivorCharacterType"
 			}
 		}
 	}

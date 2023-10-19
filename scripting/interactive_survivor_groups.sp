@@ -27,6 +27,13 @@ enum SurvivorCharacterType
 
 SurvivorSet g_SurvivorSet = SurvivorSet_L4D2;	// default in CTerrorGameRules::GetSurvivorSet()
 
+MemoryPatch g_hNickSurvivorCharacterPatcher = null;
+MemoryPatch g_hRochelleSurvivorCharacterPatcher = null;
+MemoryPatch g_hCoachSurvivorCharacterPatcher = null;
+MemoryPatch g_hEllisSurvivorCharacterPatcher = null;
+
+int CDirector_m_SurvivorCachedInfoForResponseRules = -1;
+
 #if defined DEBUG
 public Action Command_SetSurvivor( int iClient, int nArgs )
 {
@@ -65,6 +72,21 @@ public void OnMapStart()
 		// Because survivor images will only be displayed properly if survivor_set is changed on the client side which we can't do from the server
 		g_SurvivorSet = view_as< SurvivorSet >( hKvMissionInfo.GetNum( "survivor_set",
 			view_as< int >( SurvivorSet_L4D2 ) ) );	// default in CTerrorGameRules::GetSurvivorSet()
+
+		if ( g_SurvivorSet == SurvivorSet_L4D1 )
+		{
+			g_hNickSurvivorCharacterPatcher.Enable();
+			g_hRochelleSurvivorCharacterPatcher.Enable();
+			g_hCoachSurvivorCharacterPatcher.Enable();
+			g_hEllisSurvivorCharacterPatcher.Enable();
+		}
+		else
+		{
+			g_hNickSurvivorCharacterPatcher.Disable();
+			g_hRochelleSurvivorCharacterPatcher.Disable();
+			g_hCoachSurvivorCharacterPatcher.Disable();
+			g_hEllisSurvivorCharacterPatcher.Disable();
+		}
 	}
 
 	delete hKvMissionInfo;
@@ -207,6 +229,33 @@ public MRESReturn DHook_ConvertToInternalCharacter( DHookReturn hReturn, DHookPa
 	return MRES_Supercede;
 }
 
+public MRESReturn DHook_SurvivorResponseCachedInfo_GetClosestSurvivorTo( Address addrThis, DHookReturn hReturn, DHookParam hParams )
+{
+	SurvivorCharacterType eToSurvivorCharacter = hParams.Get( 1 );
+	Address addr = addrThis + view_as< Address >( CDirector_m_SurvivorCachedInfoForResponseRules ) * view_as< Address >( eToSurvivorCharacter );
+
+	SurvivorCharacterType eSurvivorCharacter;
+	float flClosest = 99999.9;
+
+	for ( SurvivorCharacterType iter = SurvivorCharacter_Gambler; iter <= SurvivorCharacter_Manager; ++iter )
+	{
+		if ( iter == eToSurvivorCharacter )
+		{
+			continue;
+		}
+
+		float flDistance = LoadFromAddress( addr + view_as< Address >( iter ) * view_as< Address >( 4 )/* sizeof( int ) */, NumberType_Int32 );
+		if ( flDistance <= flClosest )
+		{
+			eSurvivorCharacter = iter;
+			flClosest = flDistance;
+		}
+	}
+
+	hReturn.Value = eSurvivorCharacter;
+	return MRES_Supercede;
+}
+
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/375888-address-direct-reference.html
 Address GetFunctionAddressFromRelativeCall( Address addr )
 {
@@ -239,6 +288,14 @@ public void OnPluginStart()
 		SetFailState( "Unable to find gamedata address entry or address in binary for \"SurvivorCharacterDisplayName relative call\"" );
 	}
 
+	CDirector_m_SurvivorCachedInfoForResponseRules = hGameData.GetOffset( "CDirector::m_SurvivorCachedInfoForResponseRules" );
+	if ( CDirector_m_SurvivorCachedInfoForResponseRules == -1 )
+	{
+		delete hGameData;
+
+		SetFailState( "Unable to find gamedata offset entry for \"CDirector::m_SurvivorCachedInfoForResponseRules\"" );
+	}
+
 #define MEMORY_PATCH_WRAPPER(%0,%1)\
 	%1 = MemoryPatch.CreateFromConf( hGameData, %0 );\
 	\
@@ -260,6 +317,11 @@ public void OnPluginStart()
 
 	MemoryPatch hLouisSurvivorCharacterPatcher;
 	MEMORY_PATCH_WRAPPER( "Louis survivor character", hLouisSurvivorCharacterPatcher )
+
+	MEMORY_PATCH_WRAPPER( "Nick survivor character", g_hNickSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Rochelle survivor character", g_hRochelleSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Coach survivor character", g_hCoachSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Ellis survivor character", g_hEllisSurvivorCharacterPatcher )
 
 	hBillSurvivorCharacterPatcher.Enable();
 	hZoeySurvivorCharacterPatcher.Enable();
@@ -300,6 +362,14 @@ public void OnPluginStart()
 		SetFailState( "Unable to find gamedata signature entry for \"ConvertToInternalCharacter\"" );
 	}
 
+	DynamicDetour hDDetour_SurvivorResponseCachedInfo_GetClosestSurvivorTo = new DynamicDetour( Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_Address );
+	if ( !hDDetour_SurvivorResponseCachedInfo_GetClosestSurvivorTo.SetFromConf( hGameData, SDKConf_Signature, "SurvivorResponseCachedInfo::GetClosestSurvivorTo" ) )
+	{
+		delete hGameData;
+
+		SetFailState( "Unable to find gamedata signature entry for \"SurvivorResponseCachedInfo::GetClosestSurvivorTo\"" );
+	}
+
 	delete hGameData;
 
 	hDDetour_SurvivorCharacterName.AddParam( HookParamType_Int );
@@ -314,6 +384,9 @@ public void OnPluginStart()
 	hDDetour_ConvertToInternalCharacter.AddParam( HookParamType_Int );
 	hDDetour_ConvertToInternalCharacter.Enable( Hook_Pre, DHook_ConvertToInternalCharacter );
 
+	hDDetour_SurvivorResponseCachedInfo_GetClosestSurvivorTo.AddParam( HookParamType_Int );
+	hDDetour_SurvivorResponseCachedInfo_GetClosestSurvivorTo.Enable( Hook_Pre, DHook_SurvivorResponseCachedInfo_GetClosestSurvivorTo );
+
 	#if defined DEBUG
 	RegConsoleCmd( "sm_setsurvivor", Command_SetSurvivor );
 	#endif
@@ -324,6 +397,6 @@ public Plugin myinfo =
 	name = "[L4D2] Interactive Survivor Groups",
 	author = "Justin \"Sir Jay\" Chellah",
 	description = "Enables voice lines and adds respective server-side names for L4D2 characters on maps with L4D1 survivor set",
-	version = "3.1.0",
+	version = "4.1.0",
 	url = "https://www.justin-chellah.com/"
 };

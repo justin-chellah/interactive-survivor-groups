@@ -30,6 +30,10 @@ Install [SourceScramble](https://github.com/nosoop/SMExt-SourceScramble) and add
 "interactive_survivor_groups" "Zoey survivor character"
 "interactive_survivor_groups" "Francis survivor character"
 "interactive_survivor_groups" "Louis survivor character"
+"interactive_survivor_groups" "Nick survivor character"
+"interactive_survivor_groups" "Rochelle survivor character"
+"interactive_survivor_groups" "Coach survivor character"
+"interactive_survivor_groups" "Ellis survivor character"
 ```
 
 # Known Issues
