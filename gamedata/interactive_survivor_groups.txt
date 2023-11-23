@@ -257,6 +257,15 @@
 
 				"linux"		"@_ZN26SurvivorResponseCachedInfo20GetClosestSurvivorToE21SurvivorCharacterType"
 			}
+
+			"CDirector::JoinNewPlayer"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x44\x8B\x15\x2A\x2A\x2A\x2A"
+				// 55 8B EC 83 EC 44 8B 15 ? ? ? ?
+
+				"linux"		"@_ZN9CDirector13JoinNewPlayerER23DirectorNewPlayerType_t"
+			}
 		}
 	}
 }

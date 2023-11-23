@@ -25,14 +25,30 @@ enum SurvivorCharacterType
 	SurvivorCharacter_Unknown
 };
 
+#if defined DEBUG
+static const char g_szSurvivorModels[][] =
+{
+	"models/survivors/survivor_namvet.mdl",
+	"models/survivors/survivor_teenangst.mdl",
+	"models/survivors/survivor_manager.mdl",
+	"models/survivors/survivor_biker.mdl",
+
+	"models/survivors/survivor_gambler.mdl",
+	"models/survivors/survivor_producer.mdl",
+	"models/survivors/survivor_mechanic.mdl",
+	"models/survivors/survivor_coach.mdl",
+}
+#endif
+
 SurvivorSet g_SurvivorSet = SurvivorSet_L4D2;	// default in CTerrorGameRules::GetSurvivorSet()
 
-MemoryPatch g_hNickSurvivorCharacterPatcher = null;
-MemoryPatch g_hRochelleSurvivorCharacterPatcher = null;
-MemoryPatch g_hCoachSurvivorCharacterPatcher = null;
-MemoryPatch g_hEllisSurvivorCharacterPatcher = null;
+MemoryPatch g_hDistToNickSurvivorCharacterPatcher = null;
+MemoryPatch g_hDistToRochelleSurvivorCharacterPatcher = null;
+MemoryPatch g_hDistToCoachSurvivorCharacterPatcher = null;
+MemoryPatch g_hDistToEllisSurvivorCharacterPatcher = null;
 
 int CDirector_m_SurvivorCachedInfoForResponseRules = -1;
+bool g_bJoinNewPlayer = false;
 
 #if defined DEBUG
 public Action Command_SetSurvivor( int iClient, int nArgs )
@@ -47,11 +63,17 @@ public Action Command_SetSurvivor( int iClient, int nArgs )
 	{
 		SetEntProp( iTarget, Prop_Send, "m_survivorCharacter", nCharacter );
 
+		PrecacheModel( g_szSurvivorModels[nCharacter] );
+		SetEntityModel( iTarget, g_szSurvivorModels[nCharacter] );
+
 		ReplyToCommand( iClient, "SetSurvivor %N to %d", iTarget, nCharacter );
 	}
 	else
 	{
 		SetEntProp( iClient, Prop_Send, "m_survivorCharacter", nCharacter );
+
+		PrecacheModel( g_szSurvivorModels[nCharacter] );
+		SetEntityModel( iClient, g_szSurvivorModels[nCharacter] );
 
 		ReplyToCommand( iClient, "SetSurvivor %N to %d", iClient, nCharacter );
 	}
@@ -75,17 +97,17 @@ public void OnMapStart()
 
 		if ( g_SurvivorSet == SurvivorSet_L4D1 )
 		{
-			g_hNickSurvivorCharacterPatcher.Enable();
-			g_hRochelleSurvivorCharacterPatcher.Enable();
-			g_hCoachSurvivorCharacterPatcher.Enable();
-			g_hEllisSurvivorCharacterPatcher.Enable();
+			g_hDistToNickSurvivorCharacterPatcher.Enable();
+			g_hDistToRochelleSurvivorCharacterPatcher.Enable();
+			g_hDistToCoachSurvivorCharacterPatcher.Enable();
+			g_hDistToEllisSurvivorCharacterPatcher.Enable();
 		}
 		else
 		{
-			g_hNickSurvivorCharacterPatcher.Disable();
-			g_hRochelleSurvivorCharacterPatcher.Disable();
-			g_hCoachSurvivorCharacterPatcher.Disable();
-			g_hEllisSurvivorCharacterPatcher.Disable();
+			g_hDistToNickSurvivorCharacterPatcher.Disable();
+			g_hDistToRochelleSurvivorCharacterPatcher.Disable();
+			g_hDistToCoachSurvivorCharacterPatcher.Disable();
+			g_hDistToEllisSurvivorCharacterPatcher.Disable();
 		}
 	}
 
@@ -109,13 +131,13 @@ public MRESReturn DHook_SurvivorCharacterName( DHookReturn hReturn, DHookParam h
 	switch ( eSurvivorCharacter )
 	{
 		case SurvivorCharacter_NamVet:
-			DHookSetReturnString( hReturn, "Gambler" );
+			hReturn.SetString( "Gambler" );
 		case SurvivorCharacter_TeenGirl:
-			DHookSetReturnString( hReturn, "Producer" );
+			hReturn.SetString( "Producer" );
 		case SurvivorCharacter_Biker:
-			DHookSetReturnString( hReturn, "Mechanic" );
+			hReturn.SetString( "Mechanic" );
 		case SurvivorCharacter_Manager:
-			DHookSetReturnString( hReturn, "Coach" );
+			hReturn.SetString( "Coach" );
 		default:
 			return MRES_Ignored;
 	}
@@ -140,13 +162,13 @@ public MRESReturn DHook_SurvivorCharacterDisplayName( DHookReturn hReturn, DHook
 	switch ( eSurvivorCharacter )
 	{
 		case SurvivorCharacter_NamVet:
-			DHookSetReturnString( hReturn, "Nick" );
+			hReturn.SetString(  "Nick" );
 		case SurvivorCharacter_TeenGirl:
-			DHookSetReturnString( hReturn, "Rochelle" );
+			hReturn.SetString(  "Rochelle" );
 		case SurvivorCharacter_Biker:
-			DHookSetReturnString( hReturn, "Ellis" );
+			hReturn.SetString(  "Ellis" );
 		case SurvivorCharacter_Manager:
-			DHookSetReturnString( hReturn, "Coach" );
+			hReturn.SetString(  "Coach" );
 		default:
 			return MRES_Ignored;
 	}
@@ -158,6 +180,13 @@ public MRESReturn DHook_GetCharacterFromName( DHookReturn hReturn, DHookParam hP
 {
 	// L4D2 set allows L4D and L4D2 characters
 	if ( g_SurvivorSet == SurvivorSet_L4D2 )
+	{
+		return MRES_Ignored;
+	}
+
+	// L4D2 character names are stored inside avatar info key values so we shouldn't convert them because
+	// then, the game will look for L4D2 survivors instead of the original set
+	if ( g_bJoinNewPlayer )
 	{
 		return MRES_Ignored;
 	}
@@ -256,6 +285,18 @@ public MRESReturn DHook_SurvivorResponseCachedInfo_GetClosestSurvivorTo( Address
 	return MRES_Supercede;
 }
 
+public MRESReturn DHook_CDirector_JoinNewPlayer_Pre( Address addrThis, DHookReturn hReturn, DHookParam hParams )
+{
+	g_bJoinNewPlayer = true;
+	return MRES_Ignored;
+}
+
+public MRESReturn DHook_CDirector_JoinNewPlayer_Post( Address addrThis, DHookReturn hReturn, DHookParam hParams )
+{
+	g_bJoinNewPlayer = false;
+	return MRES_Ignored;
+}
+
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/375888-address-direct-reference.html
 Address GetFunctionAddressFromRelativeCall( Address addr )
 {
@@ -306,27 +347,27 @@ public void OnPluginStart()
 		SetFailState( "Unable to validate patch for \"" ... %0 ... "\"" );\
 	}
 
-	MemoryPatch hBillSurvivorCharacterPatcher;
-	MEMORY_PATCH_WRAPPER( "Bill survivor character", hBillSurvivorCharacterPatcher )
+	MemoryPatch hDistToBillSurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Bill survivor character", hDistToBillSurvivorCharacterPatcher )
 
-	MemoryPatch hZoeySurvivorCharacterPatcher;
-	MEMORY_PATCH_WRAPPER( "Zoey survivor character", hZoeySurvivorCharacterPatcher )
+	MemoryPatch hDistToZoeySurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Zoey survivor character", hDistToZoeySurvivorCharacterPatcher )
 
-	MemoryPatch hFrancisSurvivorCharacterPatcher;
-	MEMORY_PATCH_WRAPPER( "Francis survivor character", hFrancisSurvivorCharacterPatcher )
+	MemoryPatch hDistToFrancisSurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Francis survivor character", hDistToFrancisSurvivorCharacterPatcher )
 
-	MemoryPatch hLouisSurvivorCharacterPatcher;
-	MEMORY_PATCH_WRAPPER( "Louis survivor character", hLouisSurvivorCharacterPatcher )
+	MemoryPatch hDistToLouisSurvivorCharacterPatcher;
+	MEMORY_PATCH_WRAPPER( "Louis survivor character", hDistToLouisSurvivorCharacterPatcher )
 
-	MEMORY_PATCH_WRAPPER( "Nick survivor character", g_hNickSurvivorCharacterPatcher )
-	MEMORY_PATCH_WRAPPER( "Rochelle survivor character", g_hRochelleSurvivorCharacterPatcher )
-	MEMORY_PATCH_WRAPPER( "Coach survivor character", g_hCoachSurvivorCharacterPatcher )
-	MEMORY_PATCH_WRAPPER( "Ellis survivor character", g_hEllisSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Nick survivor character", g_hDistToNickSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Rochelle survivor character", g_hDistToRochelleSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Coach survivor character", g_hDistToCoachSurvivorCharacterPatcher )
+	MEMORY_PATCH_WRAPPER( "Ellis survivor character", g_hDistToEllisSurvivorCharacterPatcher )
 
-	hBillSurvivorCharacterPatcher.Enable();
-	hZoeySurvivorCharacterPatcher.Enable();
-	hFrancisSurvivorCharacterPatcher.Enable();
-	hLouisSurvivorCharacterPatcher.Enable();
+	hDistToBillSurvivorCharacterPatcher.Enable();
+	hDistToZoeySurvivorCharacterPatcher.Enable();
+	hDistToFrancisSurvivorCharacterPatcher.Enable();
+	hDistToLouisSurvivorCharacterPatcher.Enable();
 
 	Address addrSurvivorCharacterName = GetFunctionAddressFromRelativeCall( addrSurvivorCharacterNameRelativeCall );
 	DynamicDetour hDDetour_SurvivorCharacterName = new DynamicDetour( addrSurvivorCharacterName, CallConv_CDECL, ReturnType_CharPtr, ThisPointer_Ignore );
@@ -370,6 +411,14 @@ public void OnPluginStart()
 		SetFailState( "Unable to find gamedata signature entry for \"SurvivorResponseCachedInfo::GetClosestSurvivorTo\"" );
 	}
 
+	DynamicDetour hDDetour_CDirector_JoinNewPlayer = new DynamicDetour( Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_Address );
+	if ( !hDDetour_CDirector_JoinNewPlayer.SetFromConf( hGameData, SDKConf_Signature, "CDirector::JoinNewPlayer" ) )
+	{
+		delete hGameData;
+
+		SetFailState( "Unable to find gamedata signature entry for \"CDirector::JoinNewPlayer\"" );
+	}
+
 	delete hGameData;
 
 	hDDetour_SurvivorCharacterName.AddParam( HookParamType_Int );
@@ -387,6 +436,10 @@ public void OnPluginStart()
 	hDDetour_SurvivorResponseCachedInfo_GetClosestSurvivorTo.AddParam( HookParamType_Int );
 	hDDetour_SurvivorResponseCachedInfo_GetClosestSurvivorTo.Enable( Hook_Pre, DHook_SurvivorResponseCachedInfo_GetClosestSurvivorTo );
 
+	hDDetour_CDirector_JoinNewPlayer.AddParam( HookParamType_Int );		// DirectorNewPlayerType_t &
+	hDDetour_CDirector_JoinNewPlayer.Enable( Hook_Pre, DHook_CDirector_JoinNewPlayer_Pre );
+	hDDetour_CDirector_JoinNewPlayer.Enable( Hook_Post, DHook_CDirector_JoinNewPlayer_Post );
+
 	#if defined DEBUG
 	RegConsoleCmd( "sm_setsurvivor", Command_SetSurvivor );
 	#endif
@@ -397,6 +450,6 @@ public Plugin myinfo =
 	name = "[L4D2] Interactive Survivor Groups",
 	author = "Justin \"Sir Jay\" Chellah",
 	description = "Enables voice lines and adds respective server-side names for L4D2 characters on maps with L4D1 survivor set",
-	version = "4.1.0",
+	version = "5.1.0",
 	url = "https://www.justin-chellah.com/"
 };
